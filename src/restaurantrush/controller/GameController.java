@@ -28,6 +28,9 @@ public class GameController {
     private final Queue<Customer> waitingQueue;
     private final List<Customer> paidCustomers;
     private final List<Customer> abandonedCustomers;
+    // FIFO order of customers who became READY_TO_PAY in earlier turns.
+    private final Queue<Table> paymentQueue;
+    private int servedCount;
 
     private final Waiter waiter;
     private final Chef chef;
@@ -41,6 +44,8 @@ public class GameController {
         this.waitingQueue = new LinkedList<>();
         this.paidCustomers = new ArrayList<>();
         this.abandonedCustomers = new ArrayList<>();
+        this.paymentQueue = new LinkedList<>();
+        this.servedCount = 0;
 
         this.waiter = new Waiter();
         this.chef = new Chef();
@@ -111,12 +116,18 @@ public class GameController {
                     if (targetHasOrder) {
                         throw new InvalidGameActionException("Waiter cannot take order: Table " + target.getTableNumber() + " already has an order.");
                     }
+                    if (target.getCustomer() != null && target.getCustomer().getStatus() != CustomerState.SEATED) {
+                        throw new InvalidGameActionException("Waiter cannot take order: Customer is not seated and waiting to order.");
+                    }
                     if (waiterChoice.getTableNumber() == 1) t1HasOrder = true;
                     if (waiterChoice.getTableNumber() == 2) t2HasOrder = true;
                     break;
                 case SERVE:
                     if (!targetOccupied || !targetHasOrder) {
                         throw new InvalidGameActionException("Waiter cannot serve: No order on Table " + target.getTableNumber());
+                    }
+                    if (target.getCustomer().getStatus() != CustomerState.SEATED) {
+                        throw new InvalidGameActionException("Waiter cannot serve: Customer on Table " + target.getTableNumber() + " has already been served.");
                     }
                     if (!target.getOrder().isReady()) {
                         throw new InvalidGameActionException("Waiter cannot serve: Order on Table " + target.getTableNumber() + " is not READY.");
@@ -136,8 +147,8 @@ public class GameController {
                 throw new InvalidGameActionException("Chef cannot cook: No active order on Table " + target.getTableNumber());
             }
 
-            if (target.getOrder() != null && target.getOrder().isReady()) {
-                throw new InvalidGameActionException("Chef cannot cook: Order on Table " + target.getTableNumber() + " is already READY.");
+            if (target.getOrder() != null && target.getOrder().getStatus() != Order.Status.PREPARING) {
+                throw new InvalidGameActionException("Chef cannot cook: Order on Table " + target.getTableNumber() + " is no longer being prepared.");
             }
         }
     }
@@ -156,7 +167,9 @@ public class GameController {
                     targetTable.assignOrder(newOrder);
                     break;
                 case SERVE:
+                    targetTable.getOrder().markServed();
                     targetTable.getCustomer().setStatus(CustomerState.SERVED);
+                    servedCount++;
                     break;
             }
             waiter.performTask();
@@ -170,6 +183,24 @@ public class GameController {
     }
 
     private void step4_EatingAndPayment() {
+        // Pay only customers who were READY_TO_PAY before this turn's eating step.
+        // The FIFO queue enforces oldest-ready-first and prevents same-turn payment.
+        if (cashier.isActionAvailable() && !paymentQueue.isEmpty()) {
+            Table t = paymentQueue.remove();
+            Customer c = t.getCustomer();
+            Order o = t.getOrder();
+            int finalBillCents = BillCalculator.calculateBill(o.getMenuItem().getPriceCents(), c);
+
+            cashier.processPayment();
+            o.markPaid();
+            c.setStatus(CustomerState.PAID);
+            totalRevenueCents += finalBillCents;
+            paidCustomers.add(c);
+            t.clearTable();
+        }
+
+        // A newly served customer eats; an eating customer becomes ready to pay.
+        // Newly READY_TO_PAY customers are queued for a subsequent turn.
         for (Table t : tables) {
             if (t.isOccupied()) {
                 Customer c = t.getCustomer();
@@ -177,25 +208,7 @@ public class GameController {
                     c.setStatus(CustomerState.EATING);
                 } else if (c.getStatus() == CustomerState.EATING) {
                     c.setStatus(CustomerState.READY_TO_PAY);
-                }
-            }
-        }
-
-        if (cashier.isActionAvailable()) {
-            for (Table t : tables) {
-                if (t.isOccupied() && t.getCustomer().getStatus() == CustomerState.READY_TO_PAY) {
-                    Customer c = t.getCustomer();
-                    Order o = t.getOrder();
-
-                    int finalBillCents = BillCalculator.calculateBill(o.getMenuItem().getPriceCents(), c);
-
-                    this.totalRevenueCents += finalBillCents;
-                    c.setStatus(CustomerState.PAID);
-                    paidCustomers.add(c);
-
-                    t.clearTable();
-                    cashier.processPayment();
-                    break;
+                    paymentQueue.add(t);
                 }
             }
         }
@@ -221,6 +234,9 @@ public class GameController {
                     c.decaySatisfaction();
                     if (c.getSatisfaction() <= 0) {
                         abandonedCustomers.add(c);
+                        if (t.getOrder() != null) {
+                            t.getOrder().cancel();
+                        }
                         t.clearTable();
                     }
                 }
@@ -229,7 +245,7 @@ public class GameController {
     }
 
     private void step6_AdvanceTurn() {
-                    currentTurn++;
+        currentTurn++;
     }
 
     private Table getTableByNumber(int tableNumber) {
@@ -245,6 +261,7 @@ public class GameController {
     public List<Table> getTables() { return tables; }
     public List<Customer> getPaidCustomers() { return paidCustomers; }
     public List<Customer> getAbandonedCustomers() { return abandonedCustomers; }
+    public int getServedCount() { return servedCount; }
 
     public double getAverageSatisfaction() {
         if (paidCustomers.isEmpty()) return 0.0;

@@ -34,6 +34,9 @@ public class RestaurantRushCLI {
                     
                     System.out.print("Waiter Action [0: Wait, 1: Seat Customer, 2: Take Order, 3: Serve Order]: ");
                     int waiterOpt = Integer.parseInt(scanner.nextLine().trim());
+                    if (waiterOpt < 0 || waiterOpt > 3) {
+                        throw new InvalidGameActionException("Waiter action must be 0, 1, 2 or 3.");
+                    }
                     if (waiterOpt > 0) {
                         System.out.print("Select Table (1 or 2): ");
                         int tNum = Integer.parseInt(scanner.nextLine().trim());
@@ -48,6 +51,9 @@ public class RestaurantRushCLI {
 
                     System.out.print("Chef Action [0: Wait, 1: Cook Order]: ");
                     int chefOpt = Integer.parseInt(scanner.nextLine().trim());
+                    if (chefOpt != 0 && chefOpt != 1) {
+                        throw new InvalidGameActionException("Chef action must be 0 or 1.");
+                    }
                     if (chefOpt == 1) {
                         System.out.print("Select Table (1 or 2): ");
                         int tNum = Integer.parseInt(scanner.nextLine().trim());
@@ -57,12 +63,22 @@ public class RestaurantRushCLI {
                     }
 
                     controller.executeRemainingSteps(waiterChoice, chefChoice);
+                    System.out.printf("Turn %d complete | Served: %d | Unhappy departures: %d | Revenue: $%.2f | Avg satisfaction: %s%n",
+                            controller.getCurrentTurn() - 1,
+                            controller.getServedCount(),
+                            controller.getAbandonedCustomers().size(),
+                            controller.getTotalRevenueDollars(),
+                            controller.getPaidCustomers().isEmpty() ? "N/A" : String.format("%.1f", controller.getAverageSatisfaction()));
                     validInputs = true;
 
                 } catch (InvalidGameActionException e) {
                     System.out.println("\n[INVALID MOVE REJECTED]: " + e.getMessage());
                     System.out.println("Turn capacity retained. Please re-enter choices.");
-                } catch (Exception e) {
+                } catch (java.util.NoSuchElementException e) {
+                    // Scripted input may end early; do not retry forever at end-of-file.
+                    System.err.println("\n[ERROR]: Input ended before the game was complete.");
+                    return;
+                } catch (NumberFormatException e) {
                     System.out.println("\n[ERROR]: Invalid input format. Please enter numeric choices.");
                 }
             }
@@ -77,9 +93,11 @@ public class RestaurantRushCLI {
                 controller.getCurrentTurn(),
                 GameController.MAX_TURNS,
                 controller.getTotalRevenueDollars());
-        System.out.printf(" Paid Customers: %d | Avg Satisfaction: %.1f%n",
+        System.out.printf(" Served: %d | Unhappy departures: %d | Paid: %d | Avg Satisfaction: %s%n",
+                controller.getServedCount(),
+                controller.getAbandonedCustomers().size(),
                 controller.getPaidCustomers().size(),
-                controller.getAverageSatisfaction());
+                controller.getPaidCustomers().isEmpty() ? "N/A" : String.format("%.1f", controller.getAverageSatisfaction()));
         System.out.println("==================================================");
 
         System.out.println("Waiting Queue (" + controller.getWaitingQueue().size() + "):");
@@ -95,7 +113,7 @@ public class RestaurantRushCLI {
                 Customer c = t.getCustomer();
                 Order o = t.getOrder();
                 String orderInfo = (o == null) ? "No Order Placed" :
-                        String.format("%s (Prep: %d/%d)", o.getMenuItem().getName(), o.getUnitsDone(), o.getMenuItem().getRequiredPrepUnits());
+                        String.format("%s [%s] (Prep: %d/%d)", o.getMenuItem().getName(), o.getStatus(), o.getUnitsDone(), o.getMenuItem().getRequiredPrepUnits());
                 System.out.printf("  Table %d: %s | Order: %s%n", t.getTableNumber(), c, orderInfo);
             }
         }
