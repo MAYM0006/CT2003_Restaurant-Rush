@@ -1,4 +1,6 @@
-# Stage 1 — Reproducible test notes
+# Restaurant Rush — Reproducible test notes
+
+## Stage 1 (corrected version)
 
 The base setting uses 18 turns, two tables and six scheduled Regular arrivals.
 The outcomes below were verified after correcting Stage 1 payment timing.
@@ -46,3 +48,49 @@ Checks:
 
 All checks use deterministic actions and standard Java assertions via explicit
 `AssertionError`s; no additional test framework is required.
+
+
+## Stage 2 — Customer behaviour and integration
+
+Run the following commands against the **Stage 2** source (`feature/stage-2-ey`
+or the eventual `stage-2` tag), not the original Stage 1 tag. The Stage 1
+victory script is not guaranteed to work with Stage 2 food preferences.
+
+### Compile
+
+```bash
+mkdir -p build
+javac -d build $(find src -name '*.java')
+```
+
+### Stage 2 rule checks
+
+```bash
+javac -cp build -d build tests/Stage2RuleChecks.java
+java -cp build Stage2RuleChecks
+```
+
+Verified output: `Stage 2 rule checks: PASS (factory, polymorphism, discounts, preferences)`.
+The checks cover VIP on turn 7, Critic on turn 13, customer-specific decay rates,
+food preferences and VIP billing discount. VIP Burger billing is **$13.50**.
+
+### Stage 2 victory run
+
+```bash
+java -cp build restaurantrush.ui.RestaurantRushCLI < tests/victory-stage2-input.txt
+```
+
+Verified after Turn 18: **4 paid**, **$67.50 revenue**, **70.3 average
+satisfaction**, **0 abandoned**, **VICTORY**.
+
+### Stage 2 defeat run
+
+```bash
+java -cp build restaurantrush.ui.RestaurantRushCLI < tests/defeat-input.txt
+```
+
+Verified after Turn 18: **0 paid**, **$0.00 revenue**, **2 abandoned**, **DEFEAT**.
+
+The Stage 2 victory replay visibly includes a VIP arrival on turn 7 and a
+Critic arrival on turn 13. When the VIP Burger is paid for, revenue increases
+by **$13.50**, demonstrating that the discount is applied in gameplay.

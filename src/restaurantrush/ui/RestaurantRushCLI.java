@@ -17,7 +17,7 @@ public class RestaurantRushCLI {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("==================================================");
-        System.out.println("  WELCOME TO CT2003 RESTAURANT RUSH (STAGE 1)     ");
+        System.out.println("  WELCOME TO CT2003 RESTAURANT RUSH (STAGE 2)     ");
         System.out.println("==================================================");
 
         while (controller.getCurrentTurn() <= GameController.MAX_TURNS) {
