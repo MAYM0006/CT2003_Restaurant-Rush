@@ -229,9 +229,7 @@ public class GameController {
     }
 
     private void step6_AdvanceTurn() {
-        if (currentTurn < MAX_TURNS) {
-            currentTurn++;
-        }
+                    currentTurn++;
     }
 
     private Table getTableByNumber(int tableNumber) {
