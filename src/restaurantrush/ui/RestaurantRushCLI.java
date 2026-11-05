@@ -8,8 +8,10 @@ import restaurantrush.exception.InvalidGameActionException;
 
 import restaurantrush.ui.ActionEnums.WaiterAction;
 import restaurantrush.ui.ActionEnums.ChefAction;
+import restaurantrush.ui.ActionEnums.HostAction;
 
 import java.util.Scanner;
+
 
 public class RestaurantRushCLI {
     public static void main(String[] args) {
@@ -17,7 +19,7 @@ public class RestaurantRushCLI {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("==================================================");
-        System.out.println("  WELCOME TO CT2003 RESTAURANT RUSH (STAGE 2)     ");
+        System.out.println("  WELCOME TO CT2003 RESTAURANT RUSH (STAGE 3)     ");
         System.out.println("==================================================");
 
         while (controller.getCurrentTurn() <= GameController.MAX_TURNS) {
