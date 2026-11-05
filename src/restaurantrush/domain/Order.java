@@ -7,15 +7,19 @@ public class Order {
     private final MenuItem menuItem;
     private int unitsDone;
     private Status status;
+    private boolean happyHourDiscountApplied;
 
     public Order(MenuItem menuItem) {
         this.menuItem = menuItem;
         this.unitsDone = 0;
         this.status = Status.PREPARING;
+        this.happyHourDiscountApplied = false;
     }
 
     public MenuItem getMenuItem() { return menuItem; }
     public int getUnitsDone() { return unitsDone; }
+    public boolean isHappyHourDiscountApplied() { return happyHourDiscountApplied; }
+    public void setHappyHourDiscountApplied(boolean applied) { this.happyHourDiscountApplied = applied; }
     public Status getStatus() { return status; }
 
     public void advancePrep() {
