@@ -28,4 +28,17 @@ public class ActionEnums {
         public Type getType() { return type; }
         public int getTableNumber() { return tableNumber; }
     }
+    public static class HostAction {
+        public enum Type { WAIT, SEAT }
+        private final Type type;
+        private final int tableNumber;
+
+        public HostAction(Type type, int tableNumber) {
+            this.type = type;
+            this.tableNumber = tableNumber;
+        }
+
+        public Type getType() { return type; }
+        public int getTableNumber() { return tableNumber; }
+    }
 }
