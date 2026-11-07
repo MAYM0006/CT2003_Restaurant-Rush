@@ -12,7 +12,15 @@ import restaurantrush.ui.ActionEnums.HostAction;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+/**
+ * Command-line interface for collecting manager choices and presenting game state.
+ * The controller is responsible for all gameplay rules and validation.
+ */
 public class RestaurantRushCLI {
+    /**
+     * Launches an 18-turn interactive game using standard input and output.
+     * @param args unused command-line arguments
+     */
     public static void main(String[] args) {
         GameController controller = new GameController();
         Scanner scanner = new Scanner(System.in);
@@ -171,7 +179,10 @@ public class RestaurantRushCLI {
         System.out.println("==================================================");
         System.out.printf(" Total Revenue: $%.2f (Target: $45.00)%n", controller.getTotalRevenueDollars());
         System.out.printf(" Paid Customers: %d (Target: 4)%n", controller.getPaidCustomers().size());
-        System.out.printf(" Average Satisfaction: %.1f (Target: 60.0)%n", controller.getAverageSatisfaction());
+        System.out.printf(" Average Satisfaction: %s (Target: 60.0)%n",
+                controller.getPaidCustomers().isEmpty()
+                        ? "N/A"
+                        : String.format("%.1f", controller.getAverageSatisfaction()));
         System.out.printf(" Abandoned Customers: %d%n", controller.getAbandonedCustomers().size());
         System.out.println("--------------------------------------------------");
         if (controller.isVictory()) {

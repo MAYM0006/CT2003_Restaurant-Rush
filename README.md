@@ -76,10 +76,11 @@ First compile the source and all three standalone rule-check suites:
 ```bash
 mkdir -p build
 javac -d build $(find src -name '*.java')
-javac -cp build -d build tests/Stage1RuleChecks.java tests/Stage2RuleChecks.java tests/Stage3RuleChecks.java
+javac -cp build -d build tests/Stage1RuleChecks.java tests/Stage2RuleChecks.java tests/Stage3RuleChecks.java tests/Stage3OutputChecks.java
 java -cp build Stage1RuleChecks
 java -cp build Stage2RuleChecks
 java -cp build Stage3RuleChecks
+java -cp build Stage3OutputChecks
 ```
 
 Verified results on the integrated Stage 3 code:
@@ -88,6 +89,7 @@ Verified results on the integrated Stage 3 code:
 Stage 1 rule checks: PASS (3 scenarios)
 Stage 2 rule checks: PASS (factory, polymorphism, discounts, preferences)
 Stage 3 rule checks: PASS (combo, host, Happy Hour, pricing, lifecycle)
+Stage 3 output checks: PASS (end results, order announcement, prompt order)
 ```
 
 Run the prepared **Stage 3** 18-turn CLI scenarios from the project root:
@@ -105,6 +107,8 @@ java -cp build restaurantrush.ui.RestaurantRushCLI < tests/validation-stage3-inp
 | Input validation | Completed all 18 turns with invalid-input handling exercised; ends in DEFEAT because the scripted actions do not target victory |
 
 The Stage 3 rule checks additionally exercise ComboMeal preparation and payment, Host seating, invalid-action atomicity, Happy Hour duration and one-time activation, satisfaction recovery, discount ordering and non-retroactive locked bills. No external testing framework is required. See `tests/TEST_NOTES.md` for the earlier Stage 1 and Stage 2 snapshots and their regression notes.
+
+**Launcher verification:** `bash run.sh` pauses for Enter only in an interactive terminal. For scripted replays, `bash run.sh < tests/victory-stage3-input.txt` finishes without waiting for extra input and returns the game process exit status. `run.bat` checks compilation before launching the game. When no customer has paid, both turn summaries and final results show average satisfaction as **N/A**.
 
 **Important:** Stage 1 and Stage 2 victory input scripts are designed for their respective stage versions. Use the `*-stage3-input.txt` scripts when replaying gameplay on the current Stage 3 CLI, because its prompts include the Host and Happy Hour decisions.
 
@@ -135,7 +139,7 @@ The project was built in successive runnable versions, merged through GitHub pul
 - Corrected Stage 1: commit [`f6a962f`](https://github.com/MAYM0006/CT2003_Restaurant-Rush/commit/f6a962f), after [PR #12](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/12).
 - [Compare original versus corrected Stage 1](https://github.com/MAYM0006/CT2003_Restaurant-Rush/compare/0944e68...f6a962f).
 
-The correction preserves a separately runnable Stage 1 before introducing VIP or Critic customers. It repairs READY_TO_PAY timing and automatic payment, prevents repeated serving, tracks the order's paid state, improves invalid-action handling, and updates Stage 1 test evidence. A `stage-1` tag that still references the original pre-fix commit should be reconciled with the corrected Stage 1 commit in coordination with the team.
+The correction preserves a separately runnable Stage 1 before introducing VIP or Critic customers. It repairs READY_TO_PAY timing and automatic payment, prevents repeated serving, tracks the order's paid state, improves invalid-action handling, and updates Stage 1 test evidence. The remote `stage-1` tag was verified on 7 November 2026 as pointing to corrected Stage 1 commit `f6a962f` (the historical local pre-fix tag is no longer the remote release).
 
 ### Transition 1 → 2: specialised customer behaviour
 
@@ -181,13 +185,25 @@ The correction preserves a separately runnable Stage 1 before introducing VIP or
 | Modified | `src/restaurantrush/domain/MenuItem.java` | Implement the common `MenuSelection` interface. |
 | Modified | `src/restaurantrush/domain/Order.java` | Accept a menu item or combo and lock the discounted bill at order placement. |
 | New | `tests/Stage3RuleChecks.java` | Test ComboMeal, Host, Happy Hour, payment lifecycle, same-turn coordination and abandonment. |
+| New | `tests/Stage3OutputChecks.java` | Guard correct end-game N/A display, immediate order announcement, and Host → Waiter → Chef prompt sequence against regressions. |
+| Modified | `tests/TEST_NOTES.md` | Add final Stage 3 scenario results, output checks, and launcher regression instructions. |
 | New | `tests/victory-stage3-input.txt` | Reproduce a Stage 3 victory, including ordered Stage 3 input prompts. |
 | New | `tests/defeat-stage3-input.txt` | Reproduce a full 18-turn defeat. |
 | New | `tests/validation-stage3-input.txt` | Test invalid input and full-turn continuation without an incorrect action consuming capacity. |
+| Modified | `src/restaurantrush/customer/VIPCustomer.java` | Add JavaDoc describing the VIP-specific customer behaviour for the final design. |
+| Modified | `src/restaurantrush/customer/CriticCustomer.java` | Add JavaDoc documenting the Critic-specific service behaviour. |
+| Modified | `src/restaurantrush/domain/Table.java` | Document table ownership and the freeing of a table after payment or abandonment. |
+| Modified | `src/restaurantrush/exception/InvalidGameActionException.java` | Document the exception used when rejecting invalid manager choices. |
+| Modified | `src/restaurantrush/staff/Staff.java` | Document shared one-action-per-turn capacity and resetting it. |
+| Modified | `src/restaurantrush/staff/Waiter.java` | Document the Waiter's one-task-per-turn responsibility. |
+| Modified | `src/restaurantrush/staff/Chef.java` | Document the Chef's one-unit-per-turn responsibility. |
+| Modified | `src/restaurantrush/staff/Cashier.java` | Document automatic payment responsibilities. |
+| Modified | `run.sh` | Use the project directory, stop on compilation failure, keep the final result visible when launched interactively, and return the game exit status correctly in scripted runs. |
+| Modified | `run.bat` | On Windows, launch from the script directory, stop if compilation fails, and retain the game exit status while allowing the player to read the final result. |
 | Modified | `README.md` | Document the final features, reproducible tests and stage-by-stage design changes. |
 
 **Deleted files:** None. The original Stage 1 and 2 versions remain in Git history as separately runnable snapshots.
 
 ### Tags and reproducibility
 
-The assignment requires three tags pointing to runnable snapshots: `stage-1`, `stage-2` and `stage-3`. The verified local project history contains Stage 2 at `93df7b9`. A historical local `stage-1` tag pointed to `0944e68`, before the Stage 1 lifecycle fixes; its **current remote target must be checked** and, if necessary, reconciled with the corrected Stage 1 commit `f6a962f`. The `stage-3` tag should point to the accepted final merged Stage 3 commit, **after** the current QA changes are merged. A Git tag should be verified against the actual GitHub remote before the team declares the three-stage evidence complete.
+The repository’s remote tags were last verified on **7 November 2026**: `stage-1` dereferenced to the corrected Stage 1 commit `f6a962f`, and `stage-2` dereferenced to commit `93df7b9`. A `stage-3` tag was not present in that check; the team should tag the final accepted, runnable Stage 3 merge commit. Because this ZIP does not include Git refs, recheck the current remote before claiming all three release tags are published.

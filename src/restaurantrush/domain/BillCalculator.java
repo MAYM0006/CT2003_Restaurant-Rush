@@ -2,6 +2,7 @@ package restaurantrush.domain;
 
 import restaurantrush.customer.Customer;
 
+/** Calculates payable amounts in cents, applying customer then Happy Hour discounts. */
 public class BillCalculator {
     /** Retain the Stage 2 API for its regression checks and callers. */
     public static int calculateBill(int basePriceCents, Customer customer) {

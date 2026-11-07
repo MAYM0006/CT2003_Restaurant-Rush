@@ -1,5 +1,6 @@
 package restaurantrush.staff;
 
+/** Shared identity and one-action-per-turn capacity for restaurant staff. */
 public abstract class Staff {
     private final String name;
     private final String role;
@@ -15,5 +16,6 @@ public abstract class Staff {
     public String getRole() { return role; }
     public boolean isActionAvailable() { return actionAvailable; }
     public void useAction() { this.actionAvailable = false; }
+    /** Restores the member's capacity at the start of a new turn. */
     public void resetTurn() { this.actionAvailable = true; }
 }

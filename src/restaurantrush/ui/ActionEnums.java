@@ -1,5 +1,6 @@
 package restaurantrush.ui;
 
+/** Typed, table-specific choices collected from the manager by the CLI. */
 public class ActionEnums {
     public static class WaiterAction {
         public enum Type { WAIT, SEAT, TAKE_ORDER, SERVE }

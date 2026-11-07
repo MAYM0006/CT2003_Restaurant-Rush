@@ -2,6 +2,10 @@ package restaurantrush.customer;
 
 import restaurantrush.domain.Order;
 
+/**
+ * Shared customer state and satisfaction handling. Subclasses determine
+ * satisfaction decay, discounts, and food choices through polymorphism.
+ */
 public abstract class Customer {
     private final String id;
     private int satisfaction;
@@ -18,6 +22,7 @@ public abstract class Customer {
     public CustomerState getStatus() { return status; }
     public void setStatus(CustomerState status) { this.status = status; }
 
+    /** Reduces satisfaction for customers waiting to be seated or served. */
     public void decaySatisfaction() {
         if (status == CustomerState.WAITING || status == CustomerState.SEATED) {
             this.satisfaction = Math.max(0, this.satisfaction - getDecayRate());
@@ -33,6 +38,7 @@ public abstract class Customer {
 
     public abstract int getDecayRate();
     public abstract double getDiscountRate();
+    /** @return this customer's own deterministic food choice */
     public abstract Order chooseFood();
 
     @Override

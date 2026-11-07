@@ -2,6 +2,10 @@ package restaurantrush.domain;
 
 import java.util.Objects;
 
+/**
+ * Tracks preparation and payment states for a menu item or combo.
+ * The final bill is locked when the Waiter takes the order.
+ */
 public class Order {
     // Stage 1 lifecycle: cooking -> ready -> served -> paid (or cancelled on abandonment).
     public enum Status { PREPARING, READY, SERVED, PAID, CANCELLED }
@@ -12,6 +16,10 @@ public class Order {
     private Integer lockedBillCents;
     private boolean happyHourDiscountApplied;
 
+    /**
+     * Creates an unprepared order for an individual item or combo.
+     * @param selection customer's chosen menu item or combo
+     */
     public Order(MenuSelection selection) {
         this.selection = Objects.requireNonNull(selection, "Menu selection is required");
         this.unitsDone = 0;
@@ -44,6 +52,10 @@ public class Order {
         this.happyHourDiscountApplied = happyHourApplied;
     }
 
+    /**
+     * @return the payable amount in cents, fixed when the order was placed
+     * @throws IllegalStateException if no bill has been locked
+     */
     public int getBillCents() {
         if (lockedBillCents == null) {
             throw new IllegalStateException("Bill has not been locked at order placement.");
@@ -51,6 +63,10 @@ public class Order {
         return lockedBillCents;
     }
 
+    /**
+     * Completes one Chef preparation unit and makes the order READY if finished.
+     * @throws IllegalStateException if the order is not being prepared
+     */
     public void advancePrep() {
         if (status != Status.PREPARING) {
             throw new IllegalStateException("Only an order being prepared can be cooked.");

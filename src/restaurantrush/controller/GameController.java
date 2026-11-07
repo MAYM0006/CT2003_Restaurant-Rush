@@ -18,6 +18,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+/**
+ * Coordinates the 18-turn simulation, staff actions, customer lifecycles,
+ * payments, and Stage 3 Happy Hour policy. Game rules stay out of the CLI.
+ */
 public class GameController {
     public static final int MAX_TURNS = 18;
     private static final int[] ARRIVAL_TURNS = {1, 4, 7, 10, 13, 16};
@@ -62,6 +66,10 @@ public class GameController {
         this.cashier = new Cashier();
     }
 
+    /**
+     * Starts the current turn, spawns arrivals, and applies active Happy Hour recovery.
+     * @throws InvalidGameActionException if this turn has already started
+     */
     public void startTurnStep1() {
         if (turnStarted || currentTurn > MAX_TURNS) {
             throw new InvalidGameActionException("Cannot start this turn again or start after the game ends.");
@@ -77,6 +85,14 @@ public class GameController {
         executeRemainingSteps(waiterChoice, chefChoice, new HostAction(HostAction.Type.WAIT, 0));
     }
 
+    /**
+     * Validates the three staff decisions before executing Host, Waiter, Chef,
+     * eating/payment, abandonment, and turn advancement in that order.
+     * @param waiterChoice Waiter's chosen task
+     * @param chefChoice Chef's chosen task
+     * @param hostChoice Host's chosen task
+     * @throws InvalidGameActionException for an illegal decision or turn state
+     */
     public void executeRemainingSteps(WaiterAction waiterChoice, ChefAction chefChoice, HostAction hostChoice) {
         if (!turnStarted) {
             throw new InvalidGameActionException("Start the turn before submitting staff actions.");
@@ -323,6 +339,11 @@ public class GameController {
     }
 
     /** Activate at the beginning of a turn, BEFORE the turn-start satisfaction recovery. */
+    /**
+     * Activates Happy Hour for this turn and the following turn, at most once.
+     * Must be called before the current turn starts.
+     * @throws InvalidGameActionException if activation is no longer permitted
+     */
     public void activateHappyHour() {
         if (turnStarted || currentTurn > MAX_TURNS) {
             throw new InvalidGameActionException("Happy Hour can only be activated before a turn starts.");
@@ -368,6 +389,7 @@ public class GameController {
         return (double) sum / paidCustomers.size();
     }
 
+    /** @return whether the final paid-customer, revenue, and satisfaction targets are met */
     public boolean isVictory() {
         return paidCustomers.size() >= 4 && getTotalRevenueDollars() >= 45.0 && getAverageSatisfaction() >= 60.0;
     }

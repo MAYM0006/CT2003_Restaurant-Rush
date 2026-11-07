@@ -4,6 +4,7 @@ import restaurantrush.domain.ComboMeal;
 import restaurantrush.domain.MenuItem;
 import restaurantrush.domain.Order;
 
+/** Regular customer; the optional combo preference demonstrates Stage 3 ordering. */
 public class RegularCustomer extends Customer {
     private final boolean prefersCombo;
 
