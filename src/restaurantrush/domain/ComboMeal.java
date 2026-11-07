@@ -1,11 +1,17 @@
 package restaurantrush.domain;
 
+/** Two menu items sold together at 90% of their combined price. */
 public class ComboMeal implements MenuSelection {
     private final MenuItem item1;
     private final MenuItem item2;
     private final int priceCents;
     private final int requiredPrepUnits;
 
+    /**
+     * Creates a 10%-discounted combination, adding both preparation requirements.
+     * @param item1 first existing menu item
+     * @param item2 second existing menu item
+     */
     public ComboMeal(MenuItem item1, MenuItem item2) {
         this.item1 = item1;
         this.item2 = item2;

@@ -94,3 +94,45 @@ Verified after Turn 18: **0 paid**, **$0.00 revenue**, **2 abandoned**, **DEFEAT
 The Stage 2 victory replay visibly includes a VIP arrival on turn 7 and a
 Critic arrival on turn 13. When the VIP Burger is paid for, revenue increases
 by **$13.50**, demonstrating that the discount is applied in gameplay.
+
+## Stage 3 — Integrated game and final QA
+
+Run these checks against the final Stage 3 code, **not** the historical
+`stage-1` or `stage-2` tags:
+
+```bash
+javac -d build $(find src -name '*.java')
+javac -cp build -d build tests/Stage1RuleChecks.java tests/Stage2RuleChecks.java tests/Stage3RuleChecks.java tests/Stage3OutputChecks.java
+java -cp build Stage1RuleChecks
+java -cp build Stage2RuleChecks
+java -cp build Stage3RuleChecks
+java -cp build Stage3OutputChecks
+```
+
+The Stage 3 output checks guard the Host → Waiter → Chef prompt order,
+announcement of a customer's order, and the final display of **N/A** when no
+customer has paid. The earlier Stage 1/2 tests preserve their historical rules.
+
+### Full-game scripts
+
+```bash
+java -cp build restaurantrush.ui.RestaurantRushCLI < tests/victory-stage3-input.txt
+java -cp build restaurantrush.ui.RestaurantRushCLI < tests/defeat-stage3-input.txt
+java -cp build restaurantrush.ui.RestaurantRushCLI < tests/validation-stage3-input.txt
+```
+
+- Victory: 18 turns, **4 paid**, **$68.40** revenue, **80.3** average satisfaction.
+- Defeat: 18 turns, **0 paid**, **$0.00** revenue, **N/A** average satisfaction, **2 abandoned**.
+- Validation: 18 turns with invalid-input retries, ending in DEFEAT.
+
+### Shell launcher behaviour
+
+```bash
+bash run.sh < tests/victory-stage3-input.txt
+```
+
+When input is redirected, `run.sh` must complete without an extra Enter and
+return exit code **0** following a successful game run. When run interactively
+from a terminal, it waits for Enter after presenting the final results.
+The Windows `run.bat` launcher should stop rather than run stale class files
+if compilation fails; this failure path requires verification on Windows.

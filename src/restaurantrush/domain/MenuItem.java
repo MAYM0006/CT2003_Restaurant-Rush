@@ -1,5 +1,6 @@
 package restaurantrush.domain;
 
+/** Base menu choices, each with a price in cents and required preparation units. */
 public enum MenuItem implements MenuSelection {
     SALAD("Salad", 900, 1),
     BURGER("Burger", 1500, 1),

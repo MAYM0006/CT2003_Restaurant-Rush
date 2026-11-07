@@ -2,6 +2,7 @@ package restaurantrush.domain;
 
 import restaurantrush.customer.Customer;
 
+/** A numbered dining table that may contain one customer and one order. */
 public class Table {
     private final int tableNumber;
     private Customer occupiedBy;
@@ -20,6 +21,7 @@ public class Table {
 
     public void assignCustomer(Customer customer) { this.occupiedBy = customer; }
     public void assignOrder(Order order) { this.order = order; }
+    /** Releases both the occupant and order after payment or abandonment. */
     public void clearTable() {
         this.occupiedBy = null;
         this.order = null;
