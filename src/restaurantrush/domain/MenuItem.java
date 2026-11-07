@@ -1,6 +1,6 @@
 package restaurantrush.domain;
 
-public enum MenuItem {
+public enum MenuItem implements MenuSelection {
     SALAD("Salad", 900, 1),
     BURGER("Burger", 1500, 1),
     PASTA("Pasta", 1800, 2);

@@ -5,13 +5,12 @@ import restaurantrush.customer.Customer;
 import restaurantrush.domain.Order;
 import restaurantrush.domain.Table;
 import restaurantrush.exception.InvalidGameActionException;
-
 import restaurantrush.ui.ActionEnums.WaiterAction;
 import restaurantrush.ui.ActionEnums.ChefAction;
 import restaurantrush.ui.ActionEnums.HostAction;
 
+import java.util.NoSuchElementException;
 import java.util.Scanner;
-
 
 public class RestaurantRushCLI {
     public static void main(String[] args) {
@@ -23,32 +22,31 @@ public class RestaurantRushCLI {
         System.out.println("==================================================");
 
         while (controller.getCurrentTurn() <= GameController.MAX_TURNS) {
+            // Happy Hour is a once-per-game decision at the start of a turn.
+            // Ask BEFORE startTurnStep1 so recovery applies on the activation turn.
+            if (!promptHappyHour(scanner, controller)) return;
             controller.startTurnStep1();
             displayStartOfTurn(controller);
 
             boolean validInputs = false;
-            WaiterAction waiterChoice = new WaiterAction(WaiterAction.Type.WAIT, 0);
-            ChefAction chefChoice = new ChefAction(ChefAction.Type.WAIT, 0);
-
             while (!validInputs) {
                 try {
                     System.out.println("\n--- ENTER MANAGER CHOICES FOR TURN " + controller.getCurrentTurn() + " ---");
-                    
+
                     System.out.print("Waiter Action [0: Wait, 1: Seat Customer, 2: Take Order, 3: Serve Order]: ");
                     int waiterOpt = Integer.parseInt(scanner.nextLine().trim());
                     if (waiterOpt < 0 || waiterOpt > 3) {
                         throw new InvalidGameActionException("Waiter action must be 0, 1, 2 or 3.");
                     }
+                    WaiterAction waiterChoice = new WaiterAction(WaiterAction.Type.WAIT, 0);
                     if (waiterOpt > 0) {
                         System.out.print("Select Table (1 or 2): ");
                         int tNum = Integer.parseInt(scanner.nextLine().trim());
-                        WaiterAction.Type wType = WaiterAction.Type.WAIT;
-                        if (waiterOpt == 1) wType = WaiterAction.Type.SEAT;
-                        else if (waiterOpt == 2) wType = WaiterAction.Type.TAKE_ORDER;
-                        else if (waiterOpt == 3) wType = WaiterAction.Type.SERVE;
-                        waiterChoice = new WaiterAction(wType, tNum);
-                    } else {
-                        waiterChoice = new WaiterAction(WaiterAction.Type.WAIT, 0);
+                        WaiterAction.Type type = WaiterAction.Type.WAIT;
+                        if (waiterOpt == 1) type = WaiterAction.Type.SEAT;
+                        else if (waiterOpt == 2) type = WaiterAction.Type.TAKE_ORDER;
+                        else if (waiterOpt == 3) type = WaiterAction.Type.SERVE;
+                        waiterChoice = new WaiterAction(type, tNum);
                     }
 
                     System.out.print("Chef Action [0: Wait, 1: Cook Order]: ");
@@ -56,15 +54,26 @@ public class RestaurantRushCLI {
                     if (chefOpt != 0 && chefOpt != 1) {
                         throw new InvalidGameActionException("Chef action must be 0 or 1.");
                     }
+                    ChefAction chefChoice = new ChefAction(ChefAction.Type.WAIT, 0);
                     if (chefOpt == 1) {
                         System.out.print("Select Table (1 or 2): ");
                         int tNum = Integer.parseInt(scanner.nextLine().trim());
                         chefChoice = new ChefAction(ChefAction.Type.COOK, tNum);
-                    } else {
-                        chefChoice = new ChefAction(ChefAction.Type.WAIT, 0);
                     }
 
-                    controller.executeRemainingSteps(waiterChoice, chefChoice);
+                    System.out.print("Host Action [0: Wait, 1: Seat Customer]: ");
+                    int hostOpt = Integer.parseInt(scanner.nextLine().trim());
+                    if (hostOpt != 0 && hostOpt != 1) {
+                        throw new InvalidGameActionException("Host action must be 0 or 1.");
+                    }
+                    HostAction hostChoice = new HostAction(HostAction.Type.WAIT, 0);
+                    if (hostOpt == 1) {
+                        System.out.print("Select Table (1 or 2): ");
+                        int tNum = Integer.parseInt(scanner.nextLine().trim());
+                        hostChoice = new HostAction(HostAction.Type.SEAT, tNum);
+                    }
+
+                    controller.executeRemainingSteps(waiterChoice, chefChoice, hostChoice);
                     System.out.printf("Turn %d complete | Served: %d | Unhappy departures: %d | Revenue: $%.2f | Avg satisfaction: %s%n",
                             controller.getCurrentTurn() - 1,
                             controller.getServedCount(),
@@ -72,12 +81,10 @@ public class RestaurantRushCLI {
                             controller.getTotalRevenueDollars(),
                             controller.getPaidCustomers().isEmpty() ? "N/A" : String.format("%.1f", controller.getAverageSatisfaction()));
                     validInputs = true;
-
                 } catch (InvalidGameActionException e) {
                     System.out.println("\n[INVALID MOVE REJECTED]: " + e.getMessage());
                     System.out.println("Turn capacity retained. Please re-enter choices.");
-                } catch (java.util.NoSuchElementException e) {
-                    // Scripted input may end early; do not retry forever at end-of-file.
+                } catch (NoSuchElementException e) {
                     System.err.println("\n[ERROR]: Input ended before the game was complete.");
                     return;
                 } catch (NumberFormatException e) {
@@ -89,17 +96,44 @@ public class RestaurantRushCLI {
         displayEndGameResults(controller);
     }
 
+    private static boolean promptHappyHour(Scanner scanner, GameController controller) {
+        if (!controller.canActivateHappyHour()) return true;
+        while (true) {
+            System.out.print("Activate Happy Hour at start of turn " + controller.getCurrentTurn()
+                    + "? [0: No, 1: Yes (once per game, 2 turns)]: ");
+            try {
+                int choice = Integer.parseInt(scanner.nextLine().trim());
+                if (choice == 0) return true;
+                if (choice == 1) {
+                    controller.activateHappyHour();
+                    return true;
+                }
+                System.out.println("[ERROR]: Enter 0 or 1.");
+            } catch (NoSuchElementException e) {
+                System.err.println("\n[ERROR]: Input ended before the game was complete.");
+                return false;
+            } catch (NumberFormatException e) {
+                System.out.println("[ERROR]: Invalid input format. Please enter 0 or 1.");
+            } catch (InvalidGameActionException e) {
+                System.out.println("[INVALID MOVE REJECTED]: " + e.getMessage());
+            }
+        }
+    }
+
     private static void displayStartOfTurn(GameController controller) {
         System.out.println("\n==================================================");
         System.out.printf(" TURN %d / %d | Revenue: $%.2f%n",
-                controller.getCurrentTurn(),
-                GameController.MAX_TURNS,
-                controller.getTotalRevenueDollars());
+                controller.getCurrentTurn(), GameController.MAX_TURNS, controller.getTotalRevenueDollars());
         System.out.printf(" Served: %d | Unhappy departures: %d | Paid: %d | Avg Satisfaction: %s%n",
                 controller.getServedCount(),
                 controller.getAbandonedCustomers().size(),
                 controller.getPaidCustomers().size(),
                 controller.getPaidCustomers().isEmpty() ? "N/A" : String.format("%.1f", controller.getAverageSatisfaction()));
+        if (controller.isHappyHourActive()) {
+            System.out.println(" Happy Hour ACTIVE (" + controller.getHappyHourTurnsRemaining() + " turn(s) remaining)");
+        } else if (controller.isHappyHourUsed()) {
+            System.out.println(" Happy Hour already used");
+        }
         System.out.println("==================================================");
 
         System.out.println("Waiting Queue (" + controller.getWaitingQueue().size() + "):");
@@ -115,7 +149,9 @@ public class RestaurantRushCLI {
                 Customer c = t.getCustomer();
                 Order o = t.getOrder();
                 String orderInfo = (o == null) ? "No Order Placed" :
-                        String.format("%s [%s] (Prep: %d/%d)", o.getMenuItem().getName(), o.getStatus(), o.getUnitsDone(), o.getMenuItem().getRequiredPrepUnits());
+                        String.format("%s [%s] (Prep: %d/%d, Bill: $%.2f)",
+                                o.getName(), o.getStatus(), o.getUnitsDone(),
+                                o.getRequiredPrepUnits(), o.getBillCents() / 100.0);
                 System.out.printf("  Table %d: %s | Order: %s%n", t.getTableNumber(), c, orderInfo);
             }
         }
@@ -130,7 +166,6 @@ public class RestaurantRushCLI {
         System.out.printf(" Average Satisfaction: %.1f (Target: 60.0)%n", controller.getAverageSatisfaction());
         System.out.printf(" Abandoned Customers: %d%n", controller.getAbandonedCustomers().size());
         System.out.println("--------------------------------------------------");
-
         if (controller.isVictory()) {
             System.out.println(" >>> VICTORY! All targets achieved! <<<");
         } else {

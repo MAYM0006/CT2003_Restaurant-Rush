@@ -1,6 +1,6 @@
 package restaurantrush.domain;
 
-public class ComboMeal {
+public class ComboMeal implements MenuSelection {
     private final MenuItem item1;
     private final MenuItem item2;
     private final int priceCents;
