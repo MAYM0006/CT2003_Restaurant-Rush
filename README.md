@@ -106,6 +106,13 @@ java -cp build restaurantrush.ui.RestaurantRushCLI < tests/validation-stage3-inp
 | Defeat | **DEFEAT**, 0 paid, $0.00 revenue, 2 abandoned; all 18 turns completed |
 | Input validation | Completed all 18 turns with invalid-input handling exercised; ends in DEFEAT because the scripted actions do not target victory |
 
+**Additional Stage 3 scenarios:** two more scripted 18-turn runs on the final code.
+
+| Scenario | Input file | Verified outcome |
+| --- | --- | --- |
+| Victory (efficient service) | `tests/victory-stage3-input_1.txt` | **VICTORY**, 5 paid, **$80.10**, **78.8** average satisfaction, 0 abandoned |
+| Near-miss defeat (slow service) | `tests/defeat-slow-stage3-input.txt` | **DEFEAT**, 4 paid, **$71.10**, **57.8** average satisfaction, 0 abandoned: the average ends just under the 60.0 goal |
+
 The Stage 3 rule checks additionally exercise ComboMeal preparation and payment, Host seating, invalid-action atomicity, Happy Hour duration and one-time activation, satisfaction recovery, discount ordering and non-retroactive locked bills. No external testing framework is required. See `tests/TEST_NOTES.md` for the earlier Stage 1 and Stage 2 snapshots and their regression notes.
 
 **Launcher verification:** `bash run.sh` pauses for Enter only in an interactive terminal. For scripted replays, `bash run.sh < tests/victory-stage3-input.txt` finishes without waiting for extra input and returns the game process exit status. `run.bat` checks compilation before launching the game. When no customer has paid, both turn summaries and final results show average satisfaction as **N/A**.
