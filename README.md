@@ -27,7 +27,7 @@ If you downloaded the repository as a ZIP from GitHub, extract it first, then op
 
 ## How to play Stage 3
 
-Each turn begins with an optional **Happy Hour** decision, followed by arrivals and the display of the waiting queue, tables and outstanding orders. Choose the Waiter's, Chef's and Host's actions when prompted:
+Each turn begins with an optional **Happy Hour** decision, followed by arrivals and the display of the waiting queue, tables and outstanding orders. Choose the **Host → Waiter → Chef** actions in that order when prompted:
 
 | Role | Available action | Turn limit |
 | --- | --- | --- |
@@ -36,9 +36,9 @@ Each turn begins with an optional **Happy Hour** decision, followed by arrivals 
 | Host (Stage 3) | Wait or seat one additional waiting customer at a free table | One seating action |
 | Cashier | Automatically pays the oldest eligible customer | At most one payment |
 
-There are only **two tables**. The Waiter and Host can seat two different waiting customers in the same turn if separate tables are free. The Chef can work on an order taken in that turn. Choices that violate a gameplay rule are rejected without advancing the turn; the player can re-enter the choices.
+There are only **two tables**. The Waiter and Host can seat two different waiting customers in the same turn if separate tables are free. The Host may seat a customer before the Waiter takes that customer's order, and the Chef can start preparing it during the same turn. The CLI announces the selected dish, required preparation units and locked bill when an order is placed. Choices that violate a gameplay rule are rejected without advancing the turn; the player can re-enter the choices.
 
-**Order and payment lifecycle:** an order is taken, prepared, becomes `READY`, is served, and enters `EATING`. If it is served on turn T, the customer becomes `READY_TO_PAY` on T+1 and can be paid **no earlier than T+2**. Payment marks the order and customer paid, adds the *locked* bill amount to revenue and frees the table. Customers who run out of satisfaction while waiting or seated leave without paying, and any unfinished order is cancelled.
+**Order and payment lifecycle:** an order is taken, prepared, becomes `READY`, is served, and enters `EATING`. If it is served on turn T, the customer becomes `READY_TO_PAY` on T+1 and can be paid **no earlier than T+2**. Payment marks the order and customer paid, adds the *locked* bill amount to revenue and frees the table. Customers who run out of satisfaction while waiting or seated enter `ABANDONED` status, leave without paying, and any unfinished order is cancelled.
 
 ## Stage-by-stage development
 
@@ -123,14 +123,71 @@ run.sh           Git Bash/macOS/Linux launch script
 run.bat          Windows launch script
 ```
 
-## Development history and stage tags
-
-Development was integrated through GitHub pull requests; the key work includes Stage 1 lifecycle corrections (**PR #12**), Stage 2 customer features (**PR #13**) and additional Stage 2 billing changes (**PR #14**), followed by Stage 3 controller/domain (**PR #15**), Host (**PR #16**), initial CLI (**PR #17**), customer recovery (**PR #18**) and the final Stage 3 integration fixes.
+## Development history and stage transition evidence
 
 Repository: https://github.com/MAYM0006/CT2003_Restaurant-Rush
 
-- `stage-2` identifies the merged, runnable Stage 2 snapshot (commit `93df7b9`).
-- `stage-1` exists, but its final target must be verified with the team: an earlier local copy pointed to the original Stage 1 commit (`0944e68`), before the fixes in PR #12. Do not force-move a shared tag without coordination.
-- Create or verify `stage-3` **after** the completed integration changes are confirmed on `main` and final acceptance checks are complete.
+The project was built in successive runnable versions, merged through GitHub pull requests. The following tables identify **each changed or new file** across the relevant snapshots, including the reason for the change. No files were deleted in either transition.
 
-Once all three tags point to the intended **runnable** snapshots, verify the Stage 1 → Stage 2 and Stage 2 → Stage 3 GitHub comparisons for the submission and oral presentation.
+### Stage 1 baseline and lifecycle corrections
+
+- Original Stage 1: commit [`0944e68`](https://github.com/MAYM0006/CT2003_Restaurant-Rush/commit/0944e68).
+- Corrected Stage 1: commit [`f6a962f`](https://github.com/MAYM0006/CT2003_Restaurant-Rush/commit/f6a962f), after [PR #12](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/12).
+- [Compare original versus corrected Stage 1](https://github.com/MAYM0006/CT2003_Restaurant-Rush/compare/0944e68...f6a962f).
+
+The correction preserves a separately runnable Stage 1 before introducing VIP or Critic customers. It repairs READY_TO_PAY timing and automatic payment, prevents repeated serving, tracks the order's paid state, improves invalid-action handling, and updates Stage 1 test evidence. A `stage-1` tag that still references the original pre-fix commit should be reconciled with the corrected Stage 1 commit in coordination with the team.
+
+### Transition 1 → 2: specialised customer behaviour
+
+- **From:** corrected Stage 1, commit `f6a962f`.
+- **To:** tagged Stage 2, commit [`93df7b9`](https://github.com/MAYM0006/CT2003_Restaurant-Rush/commit/93df7b9).
+- **Git comparison:** [Stage 1 → Stage 2 (file changes)](https://github.com/MAYM0006/CT2003_Restaurant-Rush/compare/f6a962f...93df7b9).
+- **Key pull requests:** [#13 customer subclasses and tests](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/13), [#14 further billing work](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/14).
+
+| Change | File | Reason |
+| --- | --- | --- |
+| New | `src/restaurantrush/customer/VIPCustomer.java` | Define a VIP's slower satisfaction decay, 10% discount and Burger preference through overriding. |
+| New | `src/restaurantrush/customer/CriticCustomer.java` | Define faster satisfaction decay and distinct Salad preference through overriding. |
+| Modified | `src/restaurantrush/customer/CustomerFactory.java` | Select VIP on Turn 7 and Critic on Turn 13 while preserving six arrivals. |
+| Modified | `src/restaurantrush/domain/BillCalculator.java` | Apply each customer's discount when calculating the payable amount. |
+| Modified | `src/restaurantrush/ui/RestaurantRushCLI.java` | Identify the Stage 2 version in the welcome banner. |
+| New | `tests/Stage2RuleChecks.java` | Reproduce customer-factory, polymorphism and discount checks. |
+| New | `tests/victory-stage2-input.txt` | Provide a reproducible 18-turn Stage 2 victory sequence. |
+| Modified | `tests/TEST_NOTES.md` | Document Stage 2 testing evidence and revised procedures. |
+| Modified | `README.md` | Explain Stage 2 behaviour, execution and testing. |
+
+**Deleted files:** None. The Stage 1 payment and lifecycle fixes remain intact in Stage 2.
+
+### Transition 2 → 3: Host, ComboMeal and Happy Hour
+
+- **From:** tagged Stage 2, commit `93df7b9`.
+- **To:** final integrated Stage 3 on `main` (including the subsequent QA corrections).
+- **Git comparison:** [Stage 2 → final Stage 3 (file changes)](https://github.com/MAYM0006/CT2003_Restaurant-Rush/compare/93df7b9...main).
+- **Key pull requests:** [#15 controller/domain](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/15), [#16 Host](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/16), [#17 initial CLI](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/17), [#18 customer recovery](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/18), followed by integrated rule fixes and QA regression tests.
+
+| Change | File | Reason |
+| --- | --- | --- |
+| New | `src/restaurantrush/staff/Host.java` | Add an independent one-seat-per-turn Host role. |
+| New | `src/restaurantrush/domain/ComboMeal.java` | Model two-component combos with discounted price and combined preparation units. |
+| New | `src/restaurantrush/domain/MenuSelection.java` | Give MenuItem and ComboMeal a common orderable-item API. |
+| Modified | `src/restaurantrush/ui/ActionEnums.java` | Introduce Host seating choices. |
+| Modified | `src/restaurantrush/ui/RestaurantRushCLI.java` | Add Host and Happy Hour prompts, display the ordered dish immediately in the same turn, and use Host → Waiter → Chef prompt order. |
+| Modified | `src/restaurantrush/controller/GameController.java` | Integrate Host actions, Happy Hour's turn-start recovery and once-only activation, order-price locking, and order-placement display data; preserve payment timing and record abandonment. |
+| Modified | `src/restaurantrush/customer/Customer.java` | Restore +15 satisfaction for eligible waiting/seated customers, capped at 100. |
+| Modified | `src/restaurantrush/customer/CustomerFactory.java` | Register a deterministic ComboMeal customer on Turn 4. |
+| Modified | `src/restaurantrush/customer/RegularCustomer.java` | Use polymorphic food selection to return either Pasta or the chosen combo. |
+| Modified | `src/restaurantrush/customer/CustomerState.java` | Record an explicit `ABANDONED` lifecycle state. |
+| Modified | `src/restaurantrush/domain/BillCalculator.java` | Combine VIP and Happy Hour discounts, maintaining Stage 2 API compatibility. |
+| Modified | `src/restaurantrush/domain/MenuItem.java` | Implement the common `MenuSelection` interface. |
+| Modified | `src/restaurantrush/domain/Order.java` | Accept a menu item or combo and lock the discounted bill at order placement. |
+| New | `tests/Stage3RuleChecks.java` | Test ComboMeal, Host, Happy Hour, payment lifecycle, same-turn coordination and abandonment. |
+| New | `tests/victory-stage3-input.txt` | Reproduce a Stage 3 victory, including ordered Stage 3 input prompts. |
+| New | `tests/defeat-stage3-input.txt` | Reproduce a full 18-turn defeat. |
+| New | `tests/validation-stage3-input.txt` | Test invalid input and full-turn continuation without an incorrect action consuming capacity. |
+| Modified | `README.md` | Document the final features, reproducible tests and stage-by-stage design changes. |
+
+**Deleted files:** None. The original Stage 1 and 2 versions remain in Git history as separately runnable snapshots.
+
+### Tags and reproducibility
+
+The assignment requires three tags pointing to runnable snapshots: `stage-1`, `stage-2` and `stage-3`. The verified local project history contains Stage 2 at `93df7b9`. A historical local `stage-1` tag pointed to `0944e68`, before the Stage 1 lifecycle fixes; its **current remote target must be checked** and, if necessary, reconciled with the corrected Stage 1 commit `f6a962f`. The `stage-3` tag should point to the accepted final merged Stage 3 commit, **after** the current QA changes are merged. A Git tag should be verified against the actual GitHub remote before the team declares the three-stage evidence complete.

@@ -45,6 +45,8 @@ public class Stage3RuleChecks {
         testHappyHourOnceAndRecovery();
         testPriceLockingAndDiscountOrder();
         testHappyHourDoesNotRetroactivelyDiscount();
+        testHostWaiterChefSameTurn();
+        testAbandonmentStates();
         System.out.println("Stage 3 rule checks: PASS (combo, host, Happy Hour, pricing, lifecycle)");
     }
 
@@ -186,4 +188,40 @@ public class Stage3RuleChecks {
         check(before.getStatus() == Order.Status.PAID && game.getTotalRevenueDollars() == 18.0,
                 "Earlier order paid during Happy Hour must retain its original full price");
     }
+    private static void testHostWaiterChefSameTurn() {
+        GameController game = new GameController();
+        game.startTurnStep1();
+        game.executeRemainingSteps(w(WaiterAction.Type.TAKE_ORDER, 1),
+                c(ChefAction.Type.COOK, 1), h(HostAction.Type.SEAT, 1));
+        Order placed = game.getOrderPlacedThisTurn();
+        check(placed != null && placed.getName().equals("Pasta"),
+                "Host seating must let Waiter order in the same turn");
+        check(placed.getUnitsDone() == 1 && game.getTables().get(0).isOccupied(),
+                "Chef must be able to prepare that newly taken order in the same turn");
+    }
+
+    private static void testAbandonmentStates() {
+        GameController waiting = new GameController();
+        turn(waiting, WW, CW, HW); // CUST-1 begins waiting
+        Customer waitCustomer = waiting.getWaitingQueue().peek();
+        for (int i = 2; i <= 13; i++) turn(waiting, WW, CW, HW);
+        check(waitCustomer.getStatus() == CustomerState.ABANDONED,
+                "Unseated customer must explicitly enter ABANDONED state");
+        check(waiting.getAbandonedCustomers().contains(waitCustomer),
+                "Abandoned waiting customer must be recorded");
+
+        GameController seated = new GameController();
+        turn(seated, w(WaiterAction.Type.SEAT, 1), CW, HW);
+        Customer seatCustomer = seated.getTables().get(0).getCustomer();
+        turn(seated, w(WaiterAction.Type.TAKE_ORDER, 1), CW, HW);
+        Order unfinished = seated.getTables().get(0).getOrder();
+        for (int i = 3; i <= 13; i++) turn(seated, WW, CW, HW);
+        check(seatCustomer.getStatus() == CustomerState.ABANDONED,
+                "Seated customer must explicitly enter ABANDONED state");
+        check(unfinished.getStatus() == Order.Status.CANCELLED,
+                "Abandoned customer must leave order cancelled");
+        check(!seated.getTables().get(0).isOccupied(),
+                "Table must be freed on abandonment");
+    }
+
 }
