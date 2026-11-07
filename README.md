@@ -165,9 +165,9 @@ The correction preserves a separately runnable Stage 1 before introducing VIP or
 ### Transition 2 → 3: Host, ComboMeal and Happy Hour
 
 - **From:** tagged Stage 2, commit `93df7b9`.
-- **To:** final integrated Stage 3 on `main` (including the subsequent QA corrections).
-- **Git comparison:** [Stage 2 → final Stage 3 (file changes)](https://github.com/MAYM0006/CT2003_Restaurant-Rush/compare/93df7b9...main).
-- **Key pull requests:** [#15 controller/domain](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/15), [#16 Host](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/16), [#17 initial CLI](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/17), [#18 customer recovery](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/18), followed by integrated rule fixes and QA regression tests.
+- **To:** tagged Stage 3, commit [`0961702`](https://github.com/MAYM0006/CT2003_Restaurant-Rush/commit/0961702) (includes the final QA corrections).
+- **Git comparison:** [Stage 2 → Stage 3 (file changes)](https://github.com/MAYM0006/CT2003_Restaurant-Rush/compare/93df7b9...0961702).
+- **Key pull requests:** [#15 controller/domain](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/15), [#16 Host](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/16), [#17 initial CLI](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/17), [#18 customer recovery](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/18), [#19 Stage 3 integration](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/19), [#20 README](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/20), [#21 QA close-out](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/21), [#22 launcher exit prompt](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/22), [#23 final QA corrections](https://github.com/MAYM0006/CT2003_Restaurant-Rush/pull/23).
 
 | Change | File | Reason |
 | --- | --- | --- |
@@ -206,4 +206,33 @@ The correction preserves a separately runnable Stage 1 before introducing VIP or
 
 ### Tags and reproducibility
 
-The repository’s remote tags were last verified on **7 November 2026**: `stage-1` dereferenced to the corrected Stage 1 commit `f6a962f`, and `stage-2` dereferenced to commit `93df7b9`. A `stage-3` tag was not present in that check; the team should tag the final accepted, runnable Stage 3 merge commit. Because this ZIP does not include Git refs, recheck the current remote before claiming all three release tags are published.
+Each stage is a separate, independently runnable snapshot identified by a Git tag. The tags were verified on **7 November 2026**; each was extracted, compiled and run on its own.
+
+| Stage | Tag | Commit | Victory input | Defeat input |
+| --- | --- | --- | --- | --- |
+| 1 | `stage-1` | [`f6a962f`](https://github.com/MAYM0006/CT2003_Restaurant-Rush/commit/f6a962f) | `tests/victory-input.txt` | `tests/defeat-input.txt` |
+| 2 | `stage-2` | [`93df7b9`](https://github.com/MAYM0006/CT2003_Restaurant-Rush/commit/93df7b9) | `tests/victory-stage2-input.txt` | `tests/defeat-input.txt` |
+| 3 | `stage-3` | [`0961702`](https://github.com/MAYM0006/CT2003_Restaurant-Rush/commit/0961702) | `tests/victory-stage3-input.txt` | `tests/defeat-stage3-input.txt` |
+
+Verified results of the scripted runs at each tag:
+
+| Stage | Scenario | Paid | Revenue | Average paid satisfaction | Abandoned | Result |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| 1 | Victory | 4 | $72.00 | 68.0 | 0 | VICTORY |
+| 1 | Defeat | 0 | $0.00 | 0.0 | 2 | DEFEAT |
+| 2 | Victory | 4 | $67.50 | 70.3 | 0 | VICTORY |
+| 2 | Defeat | 0 | $0.00 | 0.0 | 2 | DEFEAT |
+| 3 | Victory | 4 | $68.40 | 80.3 | 0 | VICTORY |
+| 3 | Defeat | 0 | $0.00 | N/A | 2 | DEFEAT |
+
+Stage 1 and Stage 2 display an average of 0.0 when nobody has paid; the N/A display was added in Stage 3.
+
+To reproduce a stage, check out its tag, compile and replay its inputs (each stage uses its own input files because the prompts differ):
+
+```bash
+git checkout stage-1          # or stage-2, stage-3
+mkdir -p build
+javac -d build $(find src -name '*.java')
+java -cp build restaurantrush.ui.RestaurantRushCLI < tests/victory-input.txt
+git checkout main             # return to the latest version
+```
