@@ -136,3 +136,12 @@ return exit code **0** following a successful game run. When run interactively
 from a terminal, it waits for Enter after presenting the final results.
 The Windows `run.bat` launcher should stop rather than run stale class files
 if compilation fails; this failure path requires verification on Windows.
+
+## Additional Stage 3 scenarios
+
+Replay on the final Stage 3 code:
+
+    java -cp build restaurantrush.ui.RestaurantRushCLI < tests/victory-stage3-input_1.txt
+    java -cp build restaurantrush.ui.RestaurantRushCLI < tests/defeat-slow-stage3-input.txt
+
+Expected: the victory run ends with 5 paid, $80.10 revenue, 78.8 average satisfaction, 0 abandoned (VICTORY). The defeat run ends with 4 paid, $71.10 revenue, 57.8 average satisfaction, 0 abandoned (DEFEAT), because its customers wait longer and pay at satisfaction 52, 52, 75 and 52.
