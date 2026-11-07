@@ -25,6 +25,8 @@ public class GameController {
     private int currentTurn;
     private int totalRevenueCents;
     private int happyHourTurnsRemaining;
+    private boolean happyHourUsed;
+    private boolean turnStarted;
 
     private final List<Table> tables;
     private final Queue<Customer> waitingQueue;
@@ -43,6 +45,8 @@ public class GameController {
         this.currentTurn = 1;
         this.totalRevenueCents = 0;
         this.happyHourTurnsRemaining = 0;
+        this.happyHourUsed = false;
+        this.turnStarted = false;
 
         this.tables = List.of(new Table(1), new Table(2));
         this.waitingQueue = new LinkedList<>();
@@ -58,12 +62,23 @@ public class GameController {
     }
 
     public void startTurnStep1() {
+        if (turnStarted || currentTurn > MAX_TURNS) {
+            throw new InvalidGameActionException("Cannot start this turn again or start after the game ends.");
+        }
+        turnStarted = true;
         resetStaffTurnCapacity();
         step1_ArrivalsAndHappyHour();
-        
+    }
+
+    /** Retain the Stage 1/2 API; Stage 3's additional Host action defaults to WAIT. */
+    public void executeRemainingSteps(WaiterAction waiterChoice, ChefAction chefChoice) {
+        executeRemainingSteps(waiterChoice, chefChoice, new HostAction(HostAction.Type.WAIT, 0));
     }
 
     public void executeRemainingSteps(WaiterAction waiterChoice, ChefAction chefChoice, HostAction hostChoice) {
+        if (!turnStarted) {
+            throw new InvalidGameActionException("Start the turn before submitting staff actions.");
+        }
         validateAllActions(waiterChoice, chefChoice, hostChoice);
         step2And3_ExecuteStaffActions(waiterChoice, chefChoice, hostChoice);
         step4_EatingAndPayment();
@@ -206,9 +221,10 @@ public class GameController {
                     break;
                 case TAKE_ORDER:
                     Order newOrder = targetTable.getCustomer().chooseFood(); //Customer.java declared the abstract method, chooseFood(). VIPCustomer, CriticCustomer and Regular override chooseFood() with their own implementation. GameController calls chooseFood() without checking which customer subclass it is dealing with because Java uses dynamic binding to execute the implementation belonging to the actual customer object. The same method call supports different customer behaviours without need if-else statements and without needing to check the customer type.
-                    if (happyHourTurnsRemaining > 0) {
-                        newOrder.setHappyHourDiscountApplied(true);
-                    }
+                    boolean discounted = isHappyHourActive();
+                    int lockedBill = BillCalculator.calculateBill(
+                            newOrder.getBasePriceCents(), targetTable.getCustomer(), discounted);
+                    newOrder.lockBill(lockedBill, discounted);
                     targetTable.assignOrder(newOrder);
                     break;
                 case SERVE:
@@ -234,10 +250,7 @@ public class GameController {
             Table t = paymentQueue.remove();
             Customer c = t.getCustomer();
             Order o = t.getOrder();
-            int finalBillCents = BillCalculator.calculateBill(
-                        o.getMenuItem().getPriceCents(), 
-                        c, 
-                        o.isHappyHourDiscountApplied());
+            int finalBillCents = o.getBillCents();
 
             cashier.processPayment();
             o.markPaid();
@@ -301,13 +314,23 @@ public class GameController {
 //At turn 18, the condition became false, leaving currentTurn stuck at 18.
 //Fix: Allow unconditional increment so that the game loop can exit when currentTurns becomes 19.
         currentTurn++;
+        turnStarted = false;
     }
+
+    /** Activate at the beginning of a turn, BEFORE the turn-start satisfaction recovery. */
     public void activateHappyHour() {
-        if (happyHourTurnsRemaining > 0) {
-            throw new InvalidGameActionException("Happy Hour is already active!");
+        if (turnStarted || currentTurn > MAX_TURNS) {
+            throw new InvalidGameActionException("Happy Hour can only be activated before a turn starts.");
         }
-        this.happyHourTurnsRemaining = 2;
+        if (happyHourUsed) {
+            throw new InvalidGameActionException("Happy Hour can only be used once per game.");
+        }
+        happyHourUsed = true;
+        happyHourTurnsRemaining = 2;
     }
+
+    public boolean canActivateHappyHour() { return !happyHourUsed && !turnStarted && currentTurn <= MAX_TURNS; }
+    public boolean isHappyHourUsed() { return happyHourUsed; }
 
     private Table getTableByNumber(int tableNumber) {
         return tables.stream()

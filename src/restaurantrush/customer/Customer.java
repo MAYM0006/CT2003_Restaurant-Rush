@@ -24,12 +24,12 @@ public abstract class Customer {
         }
     }
 
-// 1 Nov: Could not compile because GameController.java calls c.restoreSatsifaction(15) but Customer.java does not define a restoreSatsifaction() method. This is the fix
-public void restoreSatisfaction(int amount) {
-    if (status == CustomerState.WAITING || status == CustomerState.SEATED) {
-        this.satisfaction = Math.min(100, this.satisfaction + amount); //This is to ensure in the case of HappyHour, we do not have a satisfaction rate exceeding 100.
+    /** Recover satisfaction for customers still waiting for a table or their food. */
+    public void restoreSatisfaction(int amount) {
+        if (amount > 0 && (status == CustomerState.WAITING || status == CustomerState.SEATED)) {
+            this.satisfaction = Math.min(100, this.satisfaction + amount);
+        }
     }
-}
 
     public abstract int getDecayRate();
     public abstract double getDiscountRate();
