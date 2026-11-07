@@ -35,6 +35,7 @@ public class GameController {
     // FIFO order of customers who became READY_TO_PAY in earlier turns.
     private final Queue<Table> paymentQueue;
     private int servedCount;
+    private Order orderPlacedThisTurn;
 
     private final Waiter waiter;
     private final Chef chef;
@@ -66,6 +67,7 @@ public class GameController {
             throw new InvalidGameActionException("Cannot start this turn again or start after the game ends.");
         }
         turnStarted = true;
+        orderPlacedThisTurn = null;
         resetStaffTurnCapacity();
         step1_ArrivalsAndHappyHour();
     }
@@ -226,6 +228,7 @@ public class GameController {
                             newOrder.getBasePriceCents(), targetTable.getCustomer(), discounted);
                     newOrder.lockBill(lockedBill, discounted);
                     targetTable.assignOrder(newOrder);
+                    orderPlacedThisTurn = newOrder;
                     break;
                 case SERVE:
                     targetTable.getOrder().markServed();
@@ -281,6 +284,7 @@ public class GameController {
             Customer c = waitingQueue.poll();
             c.decaySatisfaction();
             if (c.getSatisfaction() <= 0) {
+                c.setStatus(CustomerState.ABANDONED);
                 abandonedCustomers.add(c);
             } else {
                 remainingQueue.add(c);
@@ -294,6 +298,7 @@ public class GameController {
                 if (c.getStatus() == CustomerState.WAITING || c.getStatus() == CustomerState.SEATED) {
                     c.decaySatisfaction();
                     if (c.getSatisfaction() <= 0) {
+                        c.setStatus(CustomerState.ABANDONED);
                         abandonedCustomers.add(c);
                         if (t.getOrder() != null) {
                             t.getOrder().cancel();
@@ -343,6 +348,7 @@ public class GameController {
         return CustomerFactory.createCustomerForTurn(turn);
     }
 
+    public Order getOrderPlacedThisTurn() { return orderPlacedThisTurn; }
     public int getCurrentTurn() { return currentTurn; }
     public double getTotalRevenueDollars() { return totalRevenueCents / 100.0; }
     public Queue<Customer> getWaitingQueue() { return waitingQueue; }

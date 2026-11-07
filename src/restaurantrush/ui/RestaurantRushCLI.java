@@ -33,6 +33,18 @@ public class RestaurantRushCLI {
                 try {
                     System.out.println("\n--- ENTER MANAGER CHOICES FOR TURN " + controller.getCurrentTurn() + " ---");
 
+                    System.out.print("Host Action [0: Wait, 1: Seat Customer]: ");
+                    int hostOpt = Integer.parseInt(scanner.nextLine().trim());
+                    if (hostOpt != 0 && hostOpt != 1) {
+                        throw new InvalidGameActionException("Host action must be 0 or 1.");
+                    }
+                    HostAction hostChoice = new HostAction(HostAction.Type.WAIT, 0);
+                    if (hostOpt == 1) {
+                        System.out.print("Select Table (1 or 2): ");
+                        int tNum = Integer.parseInt(scanner.nextLine().trim());
+                        hostChoice = new HostAction(HostAction.Type.SEAT, tNum);
+                    }
+
                     System.out.print("Waiter Action [0: Wait, 1: Seat Customer, 2: Take Order, 3: Serve Order]: ");
                     int waiterOpt = Integer.parseInt(scanner.nextLine().trim());
                     if (waiterOpt < 0 || waiterOpt > 3) {
@@ -61,19 +73,15 @@ public class RestaurantRushCLI {
                         chefChoice = new ChefAction(ChefAction.Type.COOK, tNum);
                     }
 
-                    System.out.print("Host Action [0: Wait, 1: Seat Customer]: ");
-                    int hostOpt = Integer.parseInt(scanner.nextLine().trim());
-                    if (hostOpt != 0 && hostOpt != 1) {
-                        throw new InvalidGameActionException("Host action must be 0 or 1.");
-                    }
-                    HostAction hostChoice = new HostAction(HostAction.Type.WAIT, 0);
-                    if (hostOpt == 1) {
-                        System.out.print("Select Table (1 or 2): ");
-                        int tNum = Integer.parseInt(scanner.nextLine().trim());
-                        hostChoice = new HostAction(HostAction.Type.SEAT, tNum);
-                    }
-
                     controller.executeRemainingSteps(waiterChoice, chefChoice, hostChoice);
+                    // The Controller records the actual order chosen by the customer.
+                    // Show it in the same turn, even if that customer subsequently abandons.
+                    Order newlyPlaced = controller.getOrderPlacedThisTurn();
+                    if (newlyPlaced != null) {
+                        System.out.printf("Order placed at Table %d: %s (Prep units: %d, Bill: $%.2f)%n",
+                                waiterChoice.getTableNumber(), newlyPlaced.getName(),
+                                newlyPlaced.getRequiredPrepUnits(), newlyPlaced.getBillCents() / 100.0);
+                    }
                     System.out.printf("Turn %d complete | Served: %d | Unhappy departures: %d | Revenue: $%.2f | Avg satisfaction: %s%n",
                             controller.getCurrentTurn() - 1,
                             controller.getServedCount(),

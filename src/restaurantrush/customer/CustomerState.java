@@ -7,5 +7,6 @@ public enum CustomerState {
     SERVED,
     EATING,
     READY_TO_PAY,
-    PAID
+    PAID,
+    ABANDONED
 }
