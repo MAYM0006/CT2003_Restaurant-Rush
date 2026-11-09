@@ -2,3 +2,4 @@ out/
 *.class
 build/
 AI_Declarations/*
+!AI_Declarations/README.md
